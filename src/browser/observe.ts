@@ -144,8 +144,7 @@ async function visibleControls(page: Page): Promise<VisibleControl[]> {
         }
         const tag = element.tagName.toLowerCase();
         const role = element.getAttribute("role") || (tag === "a" ? "link" : tag);
-        const formName =
-          tag === "input" || tag === "select" ? element.getAttribute("name") : null;
+        const formName = tag === "input" || tag === "select" ? element.getAttribute("name") : null;
         const selectedLabel =
           tag === "select"
             ? (element as HTMLSelectElement).selectedOptions.item(0)?.textContent

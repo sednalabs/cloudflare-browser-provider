@@ -379,7 +379,10 @@ async function withModifiers<T>(
 }
 
 function privateHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  const normalized = hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "");
   if (
     normalized === "localhost" ||
     normalized.endsWith(".localhost") ||
@@ -395,9 +398,7 @@ function privateHostname(hostname: string): boolean {
   // provider's public-host default. DNS-level egress policy remains a separate
   // deployment control.
   return (
-    normalized.includes(":") ||
-    /^[0-9.]+$/.test(normalized) ||
-    /^0x[0-9a-f]+$/.test(normalized)
+    normalized.includes(":") || /^[0-9.]+$/.test(normalized) || /^0x[0-9a-f]+$/.test(normalized)
   );
 }
 

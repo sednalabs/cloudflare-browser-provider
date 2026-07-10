@@ -14,11 +14,12 @@
 import actions
 import WorkflowPolicy
 
-from UsesStep step, string callee
+from UsesStep step, string callee, string version
 where
   callee = step.getCallee() and
+  version = step.getVersion() and
   externalActionReference(callee) and
-  not pinnedActionReference(callee)
+  not pinnedActionVersion(version)
 select step,
-  "Pin the external action '" + callee +
+  "Pin the external action '" + callee + "@" + version +
     "' to a reviewed full-length commit SHA and keep update automation enabled."

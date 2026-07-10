@@ -223,7 +223,9 @@ export class BrowserSessionRuntime {
     const persisted = await this.storage.get<PersistedPageState>(PAGE_STATE_KEY);
     if (replacement && persisted !== undefined && page.url() === "about:blank") {
       if (persisted.url === "about:blank") {
-        lifecycleNotes.push("the replacement session started on the previously recorded blank page");
+        lifecycleNotes.push(
+          "the replacement session started on the previously recorded blank page",
+        );
         await restoreRequestedScroll(page, call.arguments);
         return;
       }

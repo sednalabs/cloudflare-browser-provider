@@ -34,7 +34,8 @@ jobs:
           while IFS= read -r fixture; do
             test_root="${fixture%/fixtures/*}"
             mkdir -p "$test_root/.github/workflows"
-            cp "$fixture" "$test_root/.github/workflows/unsafe.yml"
+            fixture_name="$(basename "$fixture" .workflow-fixture)"
+            cp "$fixture" "$test_root/.github/workflows/$fixture_name.yml"
           done < <(find .github/codeql/actions-security-tests -name '*.workflow-fixture' -print)
 
       - name: Install query pack dependencies
