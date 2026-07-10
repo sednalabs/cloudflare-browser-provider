@@ -5,7 +5,6 @@ coverage/
 .dev.vars
 .env
 .env.*
-!.env.example
 *.log
 *.tgz
 *.tsbuildinfo
