@@ -1,0 +1,98 @@
+name: CodeQL Advanced
+
+on:
+  merge_group:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "19 7 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    name: Analyze ${{ matrix.language }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+            config_file: ./.github/codeql/codeql-javascript.yml
+          - language: actions
+            build-mode: none
+            config_file: ./.codeql-runtime/actions.yml
+    steps:
+      - name: Checkout repository
+        # actions/checkout v7.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare trusted Actions query configuration
+        if: matrix.language == 'actions'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p .codeql-runtime
+          pack_path="./.github/codeql/actions-security"
+          if [[ "$EVENT_NAME" == pull_request && "$PR_HEAD_REPOSITORY" != "$REPOSITORY" ]]; then
+            trusted_root="$GITHUB_WORKSPACE/.codeql-runtime/trusted-base"
+            mkdir -p "$trusted_root"
+            git fetch --no-tags --depth=1 origin "$PR_BASE_SHA"
+            git archive "$PR_BASE_SHA" .github/codeql/actions-security | tar -x -C "$trusted_root"
+            pack_path="./.codeql-runtime/trusted-base/.github/codeql/actions-security"
+          fi
+          {
+            echo "name: cloudflare-browser-provider-actions"
+            echo "queries:"
+            echo "  - uses: security-and-quality"
+            echo "  - uses: $pack_path"
+          } > .codeql-runtime/actions.yml
+
+      - name: Initialize CodeQL
+        # github/codeql-action v4.37.0
+        uses: github/codeql-action/init@24ea975727876cf496b1eb0c5b36e96e01600b51
+        with:
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ${{ matrix.config_file }}
+          dependency-caching: ${{ github.event_name == 'pull_request' && 'restore' || 'full' }}
+          languages: ${{ matrix.language }}
+
+      - name: Perform CodeQL analysis
+        # github/codeql-action v4.37.0
+        uses: github/codeql-action/analyze@24ea975727876cf496b1eb0c5b36e96e01600b51
+        with:
+          category: /language:${{ matrix.language }}
+
+  required:
+    name: CodeQL required gate
+    if: always()
+    needs: [analyze]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every analysis
+        env:
+          ANALYZE_RESULT: ${{ needs.analyze.result }}
+        run: |
+          test "$ANALYZE_RESULT" = success

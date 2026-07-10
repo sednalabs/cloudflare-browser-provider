@@ -1,0 +1,11 @@
+name: sednalabs/cloudflare-browser-provider-actions-security-tests
+version: 0.1.0
+groups:
+  - actions
+  - test
+extractor: actions
+dependencies:
+  codeql/actions-all: 0.4.36
+  sednalabs/cloudflare-browser-provider-actions-security: 0.1.0
+tests: .
+warnOnImplicitThis: true

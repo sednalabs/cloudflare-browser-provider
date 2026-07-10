@@ -1,0 +1,16 @@
+<!DOCTYPE qhelp SYSTEM "qhelp.dtd">
+<qhelp>
+  <overview>
+    <p>
+      A public workflow using <code>pull_request_target</code> receives trusted
+      base-repository context while processing an untrusted contribution.
+    </p>
+  </overview>
+  <recommendation>
+    <p>
+      Use <code>pull_request</code> with read-only permissions for validation.
+      Keep writes and publication in a separate protected workflow that never
+      executes untrusted pull request content.
+    </p>
+  </recommendation>
+</qhelp>

@@ -1,0 +1,71 @@
+name: Custom CodeQL Query Tests
+
+on:
+  merge_group:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Custom CodeQL query tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        # actions/checkout v7.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Set up CodeQL
+        # github/codeql-action v4.37.0
+        id: setup-codeql
+        uses: github/codeql-action/setup-codeql@24ea975727876cf496b1eb0c5b36e96e01600b51
+
+      - name: Materialize inert workflow fixtures
+        run: |
+          set -euo pipefail
+          while IFS= read -r fixture; do
+            test_root="${fixture%/fixtures/*}"
+            mkdir -p "$test_root/.github/workflows"
+            fixture_name="$(basename "$fixture" .workflow-fixture)"
+            cp "$fixture" "$test_root/.github/workflows/$fixture_name.yml"
+          done < <(find .github/codeql/actions-security-tests -name '*.workflow-fixture' -print)
+
+      - name: Install query pack dependencies
+        env:
+          CODEQL: ${{ steps.setup-codeql.outputs.codeql-path }}
+        run: |
+          set -euo pipefail
+          "$CODEQL" pack install .github/codeql/actions-security
+          "$CODEQL" pack install --additional-packs .github/codeql .github/codeql/actions-security-tests
+
+      - name: Compile custom queries
+        env:
+          CODEQL: ${{ steps.setup-codeql.outputs.codeql-path }}
+        run: |
+          set -euo pipefail
+          "$CODEQL" query compile --additional-packs .github/codeql .github/codeql/actions-security/*.ql
+
+      - name: Run custom query tests
+        env:
+          CODEQL: ${{ steps.setup-codeql.outputs.codeql-path }}
+        run: |
+          set -euo pipefail
+          "$CODEQL" test run --additional-packs .github/codeql .github/codeql/actions-security-tests
+
+      - name: Validate query help
+        env:
+          CODEQL: ${{ steps.setup-codeql.outputs.codeql-path }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/query-help"
+          for query in .github/codeql/actions-security/*.ql; do
+            "$CODEQL" generate query-help --format markdown --output "$RUNNER_TEMP/query-help" "$query"
+          done

@@ -1,0 +1,16 @@
+<!DOCTYPE qhelp SYSTEM "qhelp.dtd">
+<qhelp>
+  <overview>
+    <p>
+      Mutable tags and branches can change after workflow review. This
+      repository requires external actions to use immutable commit references.
+    </p>
+  </overview>
+  <recommendation>
+    <p>
+      Replace the tag or branch with the reviewed 40-character commit SHA.
+      Keep the human-readable release version in a nearby comment and use
+      Dependabot to propose future updates.
+    </p>
+  </recommendation>
+</qhelp>

@@ -1,0 +1,13 @@
+Cloudflare Browser Provider
+Copyright 2026 Sedna Labs
+
+This project uses the Apache-2.0-licensed @cloudflare/playwright package and
+is informed by public design patterns in the following Cloudflare projects:
+
+- https://github.com/cloudflare/playwright-mcp
+  Harvested at ee81e278966626f9ad72d94bdb16f949d06744e5.
+- https://github.com/cloudflare/mcp-server-cloudflare
+  Harvested at 52c633e37684fadb94ae236f74909b9bbefc0db8.
+
+No source file from either repository is vendored in this distribution. See
+docs/architecture.md for the adoption decisions and primary references.

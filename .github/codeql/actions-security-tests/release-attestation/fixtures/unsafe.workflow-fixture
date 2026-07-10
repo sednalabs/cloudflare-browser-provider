@@ -1,0 +1,12 @@
+name: unsafe fixture
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release create "$GITHUB_REF_NAME" release/*

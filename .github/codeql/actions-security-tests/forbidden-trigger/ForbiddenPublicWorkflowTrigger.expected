@@ -1,0 +1,1 @@
+| .github/workflows/unsafe.yml:10:5:12:26 | Job: fixture | This public workflow uses pull_request_target. Use pull_request with read-only permissions and keep trusted publication in a separate protected workflow. |

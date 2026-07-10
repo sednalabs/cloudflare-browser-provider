@@ -1,0 +1,19 @@
+name: attested fixture
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373
+        with:
+          subject-path: release/*
+      - run: gh release create "$GITHUB_REF_NAME" release/*
