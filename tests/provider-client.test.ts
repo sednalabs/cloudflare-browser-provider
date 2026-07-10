@@ -49,7 +49,10 @@ describe("command adapter HTTP client", () => {
 
   it("sends the versioned envelope and preserves a native image response", async () => {
     const fetchImplementation = vi.fn(async (_url: URL | RequestInfo, init?: RequestInit) => {
-      expect(JSON.parse(String(init?.body))).toEqual({ protocolVersion: 1, call });
+      if (typeof init?.body !== "string") {
+        throw new Error("expected a serialized provider request body");
+      }
+      expect(JSON.parse(init.body)).toEqual({ protocolVersion: 1, call });
       expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${config.token}`);
       return Response.json({
         contentItems: [
@@ -60,7 +63,7 @@ describe("command adapter HTTP client", () => {
       });
     });
 
-    const response = await invokeProvider(call, config, fetchImplementation as typeof fetch);
+    const response = await invokeProvider(call, config, fetchImplementation);
 
     expect(response.success).toBe(true);
     expect(fetchImplementation).toHaveBeenCalledOnce();
@@ -70,10 +73,10 @@ describe("command adapter HTTP client", () => {
     const textOnly = vi.fn(async () =>
       Response.json({ contentItems: [{ text: "text only", type: "inputText" }], success: true }),
     );
-    expect((await invokeProvider(call, config, textOnly as typeof fetch)).success).toBe(false);
+    expect((await invokeProvider(call, config, textOnly)).success).toBe(false);
 
     const httpFailure = vi.fn(async () => new Response("secret body", { status: 503 }));
-    const response = await invokeProvider(call, config, httpFailure as typeof fetch);
+    const response = await invokeProvider(call, config, httpFailure);
     expect(JSON.stringify(response)).toContain("HTTP 503");
     expect(JSON.stringify(response)).not.toContain("secret body");
   });

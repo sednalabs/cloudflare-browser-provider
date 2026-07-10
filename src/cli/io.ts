@@ -6,7 +6,10 @@ export async function readStandardInput(): Promise<string> {
   const chunks: Buffer[] = [];
   let total = 0;
   for await (const chunk of process.stdin) {
-    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    if (!Buffer.isBuffer(chunk)) {
+      throw new Error("provider input stream returned a non-buffer chunk");
+    }
+    const bytes = Buffer.from(chunk);
     total += bytes.byteLength;
     if (total > MAX_CALL_BYTES) {
       throw new Error("provider input exceeds the size limit");
