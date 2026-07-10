@@ -1,12 +1,6 @@
 import { Buffer } from "node:buffer";
 
-import type {
-  Browser,
-  BrowserContext,
-  CDPSession,
-  Locator,
-  Page,
-} from "@cloudflare/playwright";
+import type { Browser, BrowserContext, CDPSession, Locator, Page } from "@cloudflare/playwright";
 import { vi, type Mock } from "vitest";
 
 import type { BrowserClient } from "../../src/browser/client.js";
@@ -35,7 +29,9 @@ export interface FakeSurface {
   };
 }
 
-export function createFakeSurface(options: { actionFailure?: boolean; url?: string } = {}): FakeSurface {
+export function createFakeSurface(
+  options: { actionFailure?: boolean; url?: string } = {},
+): FakeSurface {
   const state = { scrollX: 0, scrollY: 0, url: options.url ?? "https://example.com/?token=hidden" };
   const click = options.actionFailure
     ? vi.fn().mockRejectedValue(new Error("sensitive upstream failure"))
@@ -58,28 +54,30 @@ export function createFakeSurface(options: { actionFailure?: boolean; url?: stri
   const screenshot = vi.fn().mockResolvedValue(Buffer.from("fake-jpeg"));
   const keyboardType = vi.fn().mockResolvedValue(undefined);
   const page = {
-    evaluate: vi.fn(async (operation: (...argumentsValue: unknown[]) => unknown, value?: unknown) => {
-      const source = operation.toString();
-      if (source.includes("querySelectorAll")) {
-        return [];
-      }
-      if (source.includes("scrollTo")) {
-        if (typeof value === "number") {
-          state.scrollY = value;
-        } else if (typeof value === "object" && value !== null) {
-          const coordinates = value as { x?: number; y?: number };
-          state.scrollX = coordinates.x ?? state.scrollX;
-          state.scrollY = coordinates.y ?? state.scrollY;
+    evaluate: vi.fn(
+      async (operation: (...argumentsValue: unknown[]) => unknown, value?: unknown) => {
+        const source = operation.toString();
+        if (source.includes("querySelectorAll")) {
+          return [];
         }
-        return undefined;
-      }
-      return {
-        documentHeight: 1800,
-        documentWidth: 1280,
-        scrollX: state.scrollX,
-        scrollY: state.scrollY,
-      };
-    }),
+        if (source.includes("scrollTo")) {
+          if (typeof value === "number") {
+            state.scrollY = value;
+          } else if (typeof value === "object" && value !== null) {
+            const coordinates = value as { x?: number; y?: number };
+            state.scrollX = coordinates.x ?? state.scrollX;
+            state.scrollY = coordinates.y ?? state.scrollY;
+          }
+          return undefined;
+        }
+        return {
+          documentHeight: 1800,
+          documentWidth: 1280,
+          scrollX: state.scrollX,
+          scrollY: state.scrollY,
+        };
+      },
+    ),
     getByAltText: vi.fn(() => locator),
     getByLabel: vi.fn(() => locator),
     getByPlaceholder: vi.fn(() => locator),

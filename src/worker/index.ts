@@ -47,7 +47,10 @@ const worker = {
         const objectName = await sessionObjectName(envelope.call, env);
         return forwardToSession(env, objectName, "/call", envelope.call);
       } catch {
-        return jsonResponse(failureResponse("invalid_request", "Provider request validation failed."), 400);
+        return jsonResponse(
+          failureResponse("invalid_request", "Provider request validation failed."),
+          400,
+        );
       }
     }
 
@@ -104,7 +107,10 @@ export class BrowserSession {
           const call = parseComputerUseCall(await readJson(request));
           return jsonResponse(await this.runtime.handle(call));
         } catch {
-          return jsonResponse(failureResponse("invalid_request", "Provider request validation failed."), 400);
+          return jsonResponse(
+            failureResponse("invalid_request", "Provider request validation failed."),
+            400,
+          );
         }
       }
       if (request.method === "POST" && url.pathname === "/purge") {
@@ -226,7 +232,10 @@ function isolationMode(value: string | undefined): IsolationMode {
   }
 }
 
-function identityCall(identity: { environmentId?: string | null; threadId: string }): ComputerUseCall {
+function identityCall(identity: {
+  environmentId?: string | null;
+  threadId: string;
+}): ComputerUseCall {
   return {
     adapter: "browser",
     arguments: {},
@@ -240,7 +249,9 @@ function identityCall(identity: { environmentId?: string | null; threadId: strin
 
 function keepAliveMs(env: Env): number {
   const parsed = Number(env.BROWSER_KEEP_ALIVE_MS ?? "120000");
-  return Number.isFinite(parsed) ? Math.min(600_000, Math.max(10_000, Math.trunc(parsed))) : 120_000;
+  return Number.isFinite(parsed)
+    ? Math.min(600_000, Math.max(10_000, Math.trunc(parsed)))
+    : 120_000;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {

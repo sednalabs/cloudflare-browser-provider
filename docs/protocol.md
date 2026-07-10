@@ -19,8 +19,8 @@ The default `stdio` command reads one UTF-8 JSON object with camel-case fields:
 }
 ```
 
-Input is rejected before network access when it is malformed, exceeds the size
-limit, names a different adapter or tool, or contains an unsupported backend.
+Input is rejected before network access when it is malformed, exceeds the size limit, names a
+different adapter or tool, or contains an unsupported backend.
 
 ## Standard output
 
@@ -43,10 +43,9 @@ The adapter writes one JSON object and no other standard-output text:
 }
 ```
 
-Successful visual calls require an inline image. Artifact paths and text-only
-summaries are invalid. Provider errors remain parseable responses with
-`success: false`, a compact public-safe diagnostic, and an optional failure
-screenshot when capture was still possible.
+Successful visual calls require an inline image. Artifact paths and text-only summaries are invalid.
+Provider errors remain parseable responses with `success: false`, a compact public-safe diagnostic,
+and an optional failure screenshot when capture was still possible.
 
 ## HTTP envelope
 
@@ -59,6 +58,6 @@ The CLI sends the validated call to `POST /v1/calls` in this envelope:
 }
 ```
 
-The Worker requires bearer authentication. A deployment may additionally use a
-Cloudflare Access service token; the CLI reads those header values from
-environment variables and never includes them in diagnostics.
+The Worker requires bearer authentication. A deployment may additionally use a Cloudflare Access
+service token; the CLI reads those header values from environment variables and never includes them
+in diagnostics.

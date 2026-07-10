@@ -2,7 +2,12 @@ import { Buffer } from "node:buffer";
 
 import type { Page } from "@cloudflare/playwright";
 
-import { compactText, type ComputerUseResponse, failureResponse, successResponse } from "../contract/index.js";
+import {
+  compactText,
+  type ComputerUseResponse,
+  failureResponse,
+  successResponse,
+} from "../contract/index.js";
 import { displayUrl } from "./actions.js";
 
 const MAX_IMAGE_BYTES = 768 * 1024;
@@ -34,7 +39,10 @@ export async function observeSuccess(
   lifecycleNotes: string[],
 ): Promise<ComputerUseResponse> {
   const { imageUrl, state, controls } = await capturePage(page);
-  return successResponse(observationText(state, controls, actionSummaries, lifecycleNotes), imageUrl);
+  return successResponse(
+    observationText(state, controls, actionSummaries, lifecycleNotes),
+    imageUrl,
+  );
 }
 
 export async function observeFailure(
@@ -57,12 +65,23 @@ export async function pageState(page: Page): Promise<PageState> {
   const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
   const dimensions = await page
     .evaluate(() => ({
-      documentHeight: Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight ?? 0),
-      documentWidth: Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth ?? 0),
+      documentHeight: Math.max(
+        document.documentElement.scrollHeight,
+        document.body?.scrollHeight ?? 0,
+      ),
+      documentWidth: Math.max(
+        document.documentElement.scrollWidth,
+        document.body?.scrollWidth ?? 0,
+      ),
       scrollX: window.scrollX,
       scrollY: window.scrollY,
     }))
-    .catch(() => ({ documentHeight: viewport.height, documentWidth: viewport.width, scrollX: 0, scrollY: 0 }));
+    .catch(() => ({
+      documentHeight: viewport.height,
+      documentWidth: viewport.width,
+      scrollX: 0,
+      scrollY: 0,
+    }));
   return {
     ...dimensions,
     title: compactText(await page.title().catch(() => ""), 240),

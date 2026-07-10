@@ -49,7 +49,9 @@ export async function runAction(page: Page, action: UnknownRecord): Promise<stri
     }
     case "click":
       await click(page, action);
-      return selectorRecord(action) === undefined ? "clicked browser coordinates" : "clicked selector";
+      return selectorRecord(action) === undefined
+        ? "clicked browser coordinates"
+        : "clicked selector";
     case "type":
       await typeText(page, action);
       return selectorRecord(action) === undefined
@@ -73,7 +75,10 @@ export async function runAction(page: Page, action: UnknownRecord): Promise<stri
     case "scroll":
     case "mouse_wheel":
       await withModifiers(page, action, async () => {
-        await page.mouse.wheel(numberField(action, "scroll_x", 0), numberField(action, "scroll_y", 720));
+        await page.mouse.wheel(
+          numberField(action, "scroll_x", 0),
+          numberField(action, "scroll_y", 720),
+        );
       });
       return "scrolled browser viewport";
     case "wait": {
@@ -113,10 +118,16 @@ export function publicNavigationUrl(value: string): URL {
   }
 
   if (!new Set(["http:", "https:"]).has(url.protocol)) {
-    throw new ProviderActionError("invalid_url_scheme", "Navigation requires an HTTP or HTTPS URL.");
+    throw new ProviderActionError(
+      "invalid_url_scheme",
+      "Navigation requires an HTTP or HTTPS URL.",
+    );
   }
   if (url.username !== "" || url.password !== "") {
-    throw new ProviderActionError("url_credentials_rejected", "Credentials in navigation URLs are not allowed.");
+    throw new ProviderActionError(
+      "url_credentials_rejected",
+      "Credentials in navigation URLs are not allowed.",
+    );
   }
   if (privateHostname(url.hostname)) {
     throw new ProviderActionError(
@@ -199,7 +210,10 @@ async function focus(page: Page, action: UnknownRecord): Promise<void> {
     await page.mouse.move(action.x, action.y);
     return;
   }
-  throw new ProviderActionError("focus_target_required", "Focus requires a selector or coordinates.");
+  throw new ProviderActionError(
+    "focus_target_required",
+    "Focus requires a selector or coordinates.",
+  );
 }
 
 async function clear(page: Page, action: UnknownRecord): Promise<void> {
@@ -232,7 +246,10 @@ async function select(page: Page, action: UnknownRecord): Promise<void> {
     throw new ProviderActionError("selector_required", "Select requires a selector.");
   }
   const value =
-    stringField(action, "value") ?? stringField(action, "text") ?? stringField(action, "label") ?? "";
+    stringField(action, "value") ??
+    stringField(action, "text") ??
+    stringField(action, "label") ??
+    "";
   await locator.selectOption(value, { timeout: timeoutMs(action) });
 }
 
@@ -318,7 +335,10 @@ function locatorFromAction(page: Page, action: UnknownRecord): Locator | undefin
     });
   }
   if (locator === undefined) {
-    throw new ProviderActionError("invalid_selector", "Selector does not name a supported locator.");
+    throw new ProviderActionError(
+      "invalid_selector",
+      "Selector does not name a supported locator.",
+    );
   }
   return strict ? locator : locator.first();
 }
@@ -376,7 +396,10 @@ function privateHostname(hostname: string): boolean {
     return true;
   }
   const parts = normalized.split(".").map(Number);
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+  if (
+    parts.length !== 4 ||
+    parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
+  ) {
     return false;
   }
   const [a = -1, b = -1] = parts;
@@ -402,7 +425,8 @@ function mouseButton(action: UnknownRecord): "left" | "right" | "middle" {
 
 function timeoutMs(action: UnknownRecord): number {
   const fromMilliseconds = typeof action.timeout_ms === "number" ? action.timeout_ms : undefined;
-  const fromSeconds = typeof action.timeout_secs === "number" ? action.timeout_secs * 1000 : undefined;
+  const fromSeconds =
+    typeof action.timeout_secs === "number" ? action.timeout_secs * 1000 : undefined;
   return clampedInteger(fromMilliseconds ?? fromSeconds ?? 15_000, 100, 30_000);
 }
 

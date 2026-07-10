@@ -16,7 +16,9 @@ export interface ProviderClientConfig {
   url: URL;
 }
 
-export function providerClientConfig(environment: NodeJS.ProcessEnv = process.env): ProviderClientConfig {
+export function providerClientConfig(
+  environment: NodeJS.ProcessEnv = process.env,
+): ProviderClientConfig {
   const rawUrl = environment.CLOUDFLARE_BROWSER_PROVIDER_URL?.trim();
   const token = environment.CLOUDFLARE_BROWSER_PROVIDER_TOKEN?.trim() ?? "";
   if (rawUrl === undefined || rawUrl === "") {
@@ -26,7 +28,10 @@ export function providerClientConfig(environment: NodeJS.ProcessEnv = process.en
     throw new Error("CLOUDFLARE_BROWSER_PROVIDER_TOKEN is not configured");
   }
   const url = new URL(rawUrl);
-  if (url.protocol !== "https:" && !(url.protocol === "http:" && localDevelopmentHost(url.hostname))) {
+  if (
+    url.protocol !== "https:" &&
+    !(url.protocol === "http:" && localDevelopmentHost(url.hostname))
+  ) {
     throw new Error("provider URL must use HTTPS except for loopback development");
   }
   const accessClientId = environment.CLOUDFLARE_ACCESS_CLIENT_ID?.trim();
@@ -58,7 +63,10 @@ export async function invokeProvider(
       signal: AbortSignal.timeout(config.timeoutMs),
     });
     if (!response.ok) {
-      return failureResponse("provider_http_error", `Hosted provider returned HTTP ${response.status}.`);
+      return failureResponse(
+        "provider_http_error",
+        `Hosted provider returned HTTP ${response.status}.`,
+      );
     }
     return parseComputerUseResponse(await response.json());
   } catch {

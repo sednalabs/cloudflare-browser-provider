@@ -5,28 +5,28 @@
   "compatibility_date": "2026-07-11",
   "compatibility_flags": ["nodejs_compat"],
   "browser": {
-    "binding": "BROWSER"
+    "binding": "BROWSER",
   },
   "durable_objects": {
     "bindings": [
       {
         "name": "BROWSER_SESSIONS",
-        "class_name": "BrowserSession"
-      }
-    ]
+        "class_name": "BrowserSession",
+      },
+    ],
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["BrowserSession"]
-    }
+      "new_sqlite_classes": ["BrowserSession"],
+    },
   ],
   "limits": {
-    "cpu_ms": 300000
+    "cpu_ms": 300000,
   },
   "vars": {
     "PROVIDER_PROTOCOL_VERSION": "1",
     "BROWSER_ISOLATION": "thread",
-    "BROWSER_KEEP_ALIVE_MS": "120000"
-  }
+    "BROWSER_KEEP_ALIVE_MS": "120000",
+  },
 }

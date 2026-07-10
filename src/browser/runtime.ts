@@ -2,13 +2,17 @@ import type { Browser, BrowserContext, Page } from "@cloudflare/playwright";
 
 import {
   MAX_RESPONSE_BYTES,
-  compactText,
   type ComputerUseCall,
   type ComputerUseResponse,
   encodedJsonBytes,
   failureResponse,
 } from "../contract/index.js";
-import { canonicalActions, displayUrl, ProviderActionError, publicNavigationUrl, runAction } from "./actions.js";
+import {
+  canonicalActions,
+  ProviderActionError,
+  publicNavigationUrl,
+  runAction,
+} from "./actions.js";
 import type { BrowserClient } from "./client.js";
 import { observeFailure, observeSuccess, pageState } from "./observe.js";
 
@@ -83,7 +87,10 @@ export class BrowserSessionRuntime {
     }
 
     if (encodedJsonBytes(response) > MAX_RESPONSE_BYTES) {
-      response = failureResponse("response_too_large", "Provider response exceeded the protocol limit.");
+      response = failureResponse(
+        "response_too_large",
+        "Provider response exceeded the protocol limit.",
+      );
     }
 
     await this.storage.put<CallRecord>(recordKey, {
@@ -176,7 +183,10 @@ export class BrowserSessionRuntime {
     try {
       sessionId = await this.client.acquire(this.options.keepAliveMs);
     } catch {
-      throw new RuntimeError("browser_capacity", "Browser Run could not acquire a session. Retry later.");
+      throw new RuntimeError(
+        "browser_capacity",
+        "Browser Run could not acquire a session. Retry later.",
+      );
     }
     await this.storage.put(SESSION_KEY, sessionId);
     try {
@@ -203,7 +213,10 @@ export class BrowserSessionRuntime {
   ): Promise<void> {
     if (typeof call.arguments.url === "string") {
       const url = publicNavigationUrl(call.arguments.url);
-      await page.goto(url.toString(), { timeout: requestTimeoutMs(call), waitUntil: "domcontentloaded" });
+      await page.goto(url.toString(), {
+        timeout: requestTimeoutMs(call),
+        waitUntil: "domcontentloaded",
+      });
       await restoreRequestedScroll(page, call.arguments);
       return;
     }
@@ -212,14 +225,21 @@ export class BrowserSessionRuntime {
     if (replacement && persisted !== undefined && page.url() === "about:blank") {
       try {
         const url = publicNavigationUrl(persisted.url);
-        await page.goto(url.toString(), { timeout: requestTimeoutMs(call), waitUntil: "domcontentloaded" });
-        await page.evaluate(
-          ({ x, y }) => window.scrollTo(x, y),
-          { x: persisted.scrollX, y: persisted.scrollY },
+        await page.goto(url.toString(), {
+          timeout: requestTimeoutMs(call),
+          waitUntil: "domcontentloaded",
+        });
+        await page.evaluate(({ x, y }) => window.scrollTo(x, y), {
+          x: persisted.scrollX,
+          y: persisted.scrollY,
+        });
+        lifecycleNotes.push(
+          "restored the last safe URL and scroll position; volatile session state was lost",
         );
-        lifecycleNotes.push("restored the last safe URL and scroll position; volatile session state was lost");
       } catch {
-        lifecycleNotes.push("the replacement session started on a blank page because recovery failed");
+        lifecycleNotes.push(
+          "the replacement session started on a blank page because recovery failed",
+        );
       }
     }
     await restoreRequestedScroll(page, call.arguments);
@@ -245,19 +265,27 @@ export class BrowserSessionRuntime {
   }
 
   private async scheduleCleanup(): Promise<void> {
-    await this.storage.setAlarm(this.now() + Math.max(this.options.keepAliveMs * 2, REPLAY_WINDOW_MS));
+    await this.storage.setAlarm(
+      this.now() + Math.max(this.options.keepAliveMs * 2, REPLAY_WINDOW_MS),
+    );
   }
 
   private async compactRecords(force = false): Promise<void> {
     const records = await this.storage.list<CallRecord>({ prefix: CALL_PREFIX });
     const now = this.now();
-    const ordered = [...records.entries()].sort((left, right) => left[1].startedAt - right[1].startedAt);
+    const ordered = [...records.entries()].sort(
+      (left, right) => left[1].startedAt - right[1].startedAt,
+    );
     const updates: Array<Promise<void>> = [];
     const removals: string[] = [];
 
     for (const [key, record] of ordered) {
       const age = now - (record.completedAt ?? record.startedAt);
-      if (record.status === "completed" && record.response !== undefined && age > REPLAY_WINDOW_MS) {
+      if (
+        record.status === "completed" &&
+        record.response !== undefined &&
+        age > REPLAY_WINDOW_MS
+      ) {
         updates.push(this.storage.put<CallRecord>(key, { ...record, response: undefined }));
       }
       if (age > TOMBSTONE_WINDOW_MS) {
@@ -300,7 +328,10 @@ function providerFailure(error: unknown): ComputerUseResponse {
   if (error instanceof RuntimeError || error instanceof ProviderActionError) {
     return failureResponse(error.code, error.message);
   }
-  return failureResponse("provider_failure", "The browser provider failed before an observation was available.");
+  return failureResponse(
+    "provider_failure",
+    "The browser provider failed before an observation was available.",
+  );
 }
 
 function normalizeActionError(error: unknown): { code: string; message: string } {
@@ -326,7 +357,10 @@ async function settle(page: Page): Promise<void> {
   await page.waitForTimeout(100);
 }
 
-async function restoreRequestedScroll(page: Page, argumentsValue: Record<string, unknown>): Promise<void> {
+async function restoreRequestedScroll(
+  page: Page,
+  argumentsValue: Record<string, unknown>,
+): Promise<void> {
   const view = recordField(argumentsValue.view);
   const scrollY = numberOrUndefined(view?.scrollY ?? argumentsValue.scrollY);
   if (scrollY !== undefined) {

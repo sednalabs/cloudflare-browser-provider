@@ -2,18 +2,18 @@
 
 ## Worker
 
-1. Create a dedicated Cloudflare API token for deployment with only the account
-   and Worker permissions required by Wrangler.
-2. Review `wrangler.jsonc`, choose an isolation mode and inactivity timeout, and
-   deploy from a trusted environment with `npm run deploy`.
-3. Add `PROVIDER_AUTH_TOKEN` and `SESSION_KEY_SALT` with `wrangler secret put`.
-   Do not place either value in `wrangler.jsonc`, shell history, logs, examples,
-   or repository settings that are visible to untrusted workflows.
-4. Put the Worker behind Cloudflare Access when the deployment policy requires
-   service-token enforcement.
+1. Create a dedicated Cloudflare API token for deployment with only the account and Worker
+   permissions required by Wrangler.
+2. Review `wrangler.jsonc`, choose an isolation mode and inactivity timeout, and deploy from a
+   trusted environment with `npm run deploy`.
+3. Add `PROVIDER_AUTH_TOKEN` and `SESSION_KEY_SALT` with `wrangler secret put`. Do not place either
+   value in `wrangler.jsonc`, shell history, logs, examples, or repository settings that are visible
+   to untrusted workflows.
+4. Put the Worker behind Cloudflare Access when the deployment policy requires service-token
+   enforcement.
 
-The Worker exposes an unauthenticated metadata-only `/health` endpoint and
-requires authentication for calls, purges, and provider limits.
+The Worker exposes an unauthenticated metadata-only `/health` endpoint and requires authentication
+for calls, purges, and provider limits.
 
 ## Codex command provider
 
@@ -54,6 +54,5 @@ Then configure the command provider for the hosted backends:
 }
 ```
 
-Keep an earlier provider configuration as the rollback file. Installing this
-package does not require terminating active Codex processes; new sessions pick
-up the configuration normally.
+Keep an earlier provider configuration as the rollback file. Installing this package does not
+require terminating active Codex processes; new sessions pick up the configuration normally.

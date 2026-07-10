@@ -48,7 +48,10 @@ async function runStdio(): Promise<number> {
     const call = parseComputerUseCall(JSON.parse(await readStandardInput()));
     response = await invokeProvider(call, providerClientConfig());
   } catch {
-    response = failureResponse("invalid_input", "The stdio provider request was invalid or misconfigured.");
+    response = failureResponse(
+      "invalid_input",
+      "The stdio provider request was invalid or misconfigured.",
+    );
   }
   writeMachineResponse(response);
   return 0;

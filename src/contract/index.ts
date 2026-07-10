@@ -138,7 +138,10 @@ export function encodedJsonBytes(value: unknown): number {
 }
 
 export function compactText(value: string, maxLength: number): string {
-  const compact = value.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
+  const compact = value
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return compact.length <= maxLength ? compact : `${compact.slice(0, Math.max(0, maxLength - 1))}…`;
 }
 
