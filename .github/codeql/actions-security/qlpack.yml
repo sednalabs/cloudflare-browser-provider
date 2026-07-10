@@ -1,0 +1,10 @@
+name: sednalabs/cloudflare-browser-provider-actions-security
+version: 0.1.0
+groups:
+  - actions
+  - queries
+extractor: actions
+dependencies:
+  codeql/actions-all: 0.4.36
+defaultSuiteFile: suites/actions-security.qls
+warnOnImplicitThis: true

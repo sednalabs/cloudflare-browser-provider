@@ -1,0 +1,16 @@
+<!DOCTYPE qhelp SYSTEM "qhelp.dtd">
+<qhelp>
+  <overview>
+    <p>
+      Release consumers need verifiable provenance connecting downloadable
+      assets to a trusted workflow and source commit.
+    </p>
+  </overview>
+  <recommendation>
+    <p>
+      Generate checksums and an SBOM, then run
+      <code>actions/attest-build-provenance</code> over the final assets before
+      the release publication command.
+    </p>
+  </recommendation>
+</qhelp>

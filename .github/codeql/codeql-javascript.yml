@@ -1,0 +1,16 @@
+name: cloudflare-browser-provider-javascript
+
+queries:
+  - uses: security-and-quality
+
+paths:
+  - src
+  - tests
+
+paths-ignore:
+  - dist
+  - coverage
+  - node_modules
+
+threat-models:
+  - remote
