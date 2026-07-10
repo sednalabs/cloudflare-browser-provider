@@ -144,11 +144,19 @@ async function visibleControls(page: Page): Promise<VisibleControl[]> {
         }
         const tag = element.tagName.toLowerCase();
         const role = element.getAttribute("role") || (tag === "a" ? "link" : tag);
+        const formName =
+          tag === "input" || tag === "select" ? element.getAttribute("name") : null;
+        const selectedLabel =
+          tag === "select"
+            ? (element as HTMLSelectElement).selectedOptions.item(0)?.textContent
+            : null;
         const label =
           element.getAttribute("aria-label") ||
           element.getAttribute("placeholder") ||
           element.getAttribute("title") ||
-          (tag === "input" ? element.getAttribute("name") : element.textContent) ||
+          formName ||
+          selectedLabel ||
+          element.textContent ||
           "";
         results.push({
           bottom: Math.round(box.bottom),

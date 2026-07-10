@@ -38,13 +38,28 @@ describe("browser action translation", () => {
     for (const url of [
       "file:///tmp/test",
       "http://127.0.0.1/",
+      "http://127.1/",
       "http://169.254.169.254/",
+      "http://2130706433/",
+      "http://0x7f000001/",
+      "http://0177.0.0.1/",
+      "http://[::ffff:127.0.0.1]/",
+      "http://[fe90::1]/",
       "https://user:password@example.com/",
       "https://service.local/",
     ]) {
       expect(() => publicNavigationUrl(url)).toThrow();
     }
     expect(publicNavigationUrl("https://example.com/").hostname).toBe("example.com");
+  });
+
+  it("uses Playwright fill when clearing a located element", async () => {
+    const surface = createFakeSurface();
+
+    await runAction(surface.page, { selector: "input", type: "clear" });
+
+    expect(surface.spies.fill).toHaveBeenCalledWith("", { timeout: 15_000 });
+    expect(surface.spies.click).not.toHaveBeenCalled();
   });
 
   it("redacts URL credentials, query values, and fragments in observations", () => {

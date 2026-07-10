@@ -186,6 +186,7 @@ export class FakeBrowserClient implements BrowserClient {
 export class MemoryStorage implements RuntimeStorage {
   readonly values = new Map<string, unknown>();
   alarmTime: number | Date | undefined;
+  listCount = 0;
 
   delete(keys: string | string[]): Promise<boolean | number> {
     if (typeof keys === "string") {
@@ -205,6 +206,7 @@ export class MemoryStorage implements RuntimeStorage {
   }
 
   list<T>(options?: { prefix?: string }): Promise<Map<string, T>> {
+    this.listCount += 1;
     const entries = [...this.values.entries()].filter(([key]) =>
       options?.prefix === undefined ? true : key.startsWith(options.prefix),
     );

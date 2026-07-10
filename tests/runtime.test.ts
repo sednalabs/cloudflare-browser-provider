@@ -36,6 +36,7 @@ describe("BrowserSessionRuntime", () => {
     expect(client.connect).toHaveBeenCalledWith("new-session");
     expect(surface.spies.browserClose).toHaveBeenCalledOnce();
     expect(storage.values.get("session:id")).toBe("new-session");
+    expect(storage.listCount).toBe(0);
   });
 
   it("replays a completed mutating call instead of repeating the action", async () => {
@@ -72,6 +73,43 @@ describe("BrowserSessionRuntime", () => {
     expect(response.contentItems[0]).toMatchObject({
       text: expect.stringContaining("replaced an expired or evicted Browser Run session"),
     });
+  });
+
+  it("treats blank-page recovery as normal after session replacement", async () => {
+    const storage = new MemoryStorage();
+    await storage.put("session:id", "expired-session");
+    await storage.put("session:page-state", {
+      scrollX: 0,
+      scrollY: 0,
+      touchedAt: Date.now(),
+      url: "about:blank",
+    });
+    const surface = createFakeSurface({ url: "about:blank" });
+    const client = new FakeBrowserClient(surface);
+    client.failSession("expired-session");
+    const runtime = new BrowserSessionRuntime(storage, client, { keepAliveMs: 120_000 });
+
+    const response = await runtime.handle(call({ callId: "blank-recovery" }));
+
+    expect(response.contentItems[0]).toMatchObject({
+      text: expect.stringContaining("previously recorded blank page"),
+    });
+    expect(JSON.stringify(response)).not.toContain("recovery failed");
+    expect(surface.spies.goto).not.toHaveBeenCalled();
+  });
+
+  it("compacts replay records only from the alarm path", async () => {
+    const storage = new MemoryStorage();
+    const surface = createFakeSurface();
+    const runtime = new BrowserSessionRuntime(storage, new FakeBrowserClient(surface), {
+      keepAliveMs: 120_000,
+    });
+
+    await runtime.handle(call({ callId: "alarm-compaction" }));
+    expect(storage.listCount).toBe(0);
+
+    await runtime.alarm();
+    expect(storage.listCount).toBe(1);
   });
 
   it("returns a failure screenshot without leaking the upstream error", async () => {

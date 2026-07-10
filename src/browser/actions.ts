@@ -219,11 +219,8 @@ async function focus(page: Page, action: UnknownRecord): Promise<void> {
 async function clear(page: Page, action: UnknownRecord): Promise<void> {
   const locator = locatorFromAction(page, action);
   if (locator !== undefined) {
-    if (stringField(action, "method") === "fill") {
-      await locator.fill("", { timeout: timeoutMs(action) });
-      return;
-    }
-    await locator.click({ timeout: timeoutMs(action) });
+    await locator.fill("", { timeout: timeoutMs(action) });
+    return;
   }
   await selectAllAndClear(page);
 }
@@ -382,36 +379,25 @@ async function withModifiers<T>(
 }
 
 function privateHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
   if (
     normalized === "localhost" ||
     normalized.endsWith(".localhost") ||
     normalized.endsWith(".local") ||
-    normalized === "::1" ||
-    normalized === "0:0:0:0:0:0:0:1" ||
-    normalized.startsWith("fc") ||
-    normalized.startsWith("fd") ||
-    normalized.startsWith("fe80:")
+    normalized === "localhost.localdomain"
   ) {
     return true;
   }
-  const parts = normalized.split(".").map(Number);
-  if (
-    parts.length !== 4 ||
-    parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
-  ) {
-    return false;
-  }
-  const [a = -1, b = -1] = parts;
+
+  // The URL parser canonicalizes legacy hexadecimal, octal, short, and integer
+  // IPv4 forms before this check. Reject every IP literal, not only private
+  // ranges, so alternate encodings and IPv4-mapped IPv6 cannot bypass the
+  // provider's public-host default. DNS-level egress policy remains a separate
+  // deployment control.
   return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    a >= 224
+    normalized.includes(":") ||
+    /^[0-9.]+$/.test(normalized) ||
+    /^0x[0-9a-f]+$/.test(normalized)
   );
 }
 
