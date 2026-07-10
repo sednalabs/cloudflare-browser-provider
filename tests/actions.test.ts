@@ -1,9 +1,25 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { displayUrl, publicNavigationUrl, runAction } from "../src/browser/actions.js";
+import {
+  canonicalActions,
+  displayUrl,
+  publicNavigationUrl,
+  runAction,
+} from "../src/browser/actions.js";
 import { createFakeSurface } from "./helpers/fakes.js";
 
 describe("browser action translation", () => {
+  it("canonicalizes batched, legacy, and empty action payloads", () => {
+    expect(canonicalActions({})).toEqual([]);
+    expect(canonicalActions({ actions: [] })).toEqual([]);
+    expect(canonicalActions({ action: "wait", ms: 1 })).toEqual([{ action: "wait", ms: 1 }]);
+    expect(canonicalActions({ actions: [{ type: "wait" }, { type: "scroll" }] })).toEqual([
+      { type: "wait" },
+      { type: "scroll" },
+    ]);
+    expect(() => canonicalActions({ actions: [null] })).toThrow("browser action");
+  });
+
   it("executes the supported action vocabulary without exposing typed values", async () => {
     const surface = createFakeSurface();
     const actions = [
@@ -45,12 +61,15 @@ describe("browser action translation", () => {
       "http://0177.0.0.1/",
       "http://[::ffff:127.0.0.1]/",
       "http://[fe90::1]/",
+      "http://localhost.localdomain/",
+      "https://service.localhost/",
       "https://user:password@example.com/",
       "https://service.local/",
     ]) {
       expect(() => publicNavigationUrl(url)).toThrow();
     }
     expect(publicNavigationUrl("https://example.com/").hostname).toBe("example.com");
+    expect(() => publicNavigationUrl("not a URL")).toThrow("invalid");
   });
 
   it("uses Playwright fill when clearing a located element", async () => {
@@ -66,5 +85,75 @@ describe("browser action translation", () => {
     expect(displayUrl("https://example.com/path?token=value#section")).toBe(
       "https://example.com/path?[redacted]",
     );
+    expect(displayUrl("not a URL")).toBe("about:blank");
+  });
+
+  it("translates coordinate, fill, modifier, and alternate selector options", async () => {
+    const surface = createFakeSurface();
+
+    await runAction(surface.page, {
+      button: "right",
+      click_count: 2,
+      delay_ms: 0,
+      modifiers: ["Shift"],
+      timeout_secs: 2,
+      type: "click",
+      x: 10,
+      y: 20,
+    });
+    await runAction(surface.page, {
+      method: "fill",
+      selector: "input",
+      text: "redacted",
+      type: "type",
+    });
+    await runAction(surface.page, { replace: false, selector: "input", text: "x", type: "type" });
+    await runAction(surface.page, { type: "focus", x: 1, y: 2 });
+    await runAction(surface.page, { type: "clear" });
+    await runAction(surface.page, { delay_ms: 0, keys: ["Control", "A"], type: "keypress" });
+    await runAction(surface.page, { label: "Two", selector: "select", type: "select" });
+    await runAction(surface.page, { steps: 3, type: "hover", x: 1, y: 2 });
+    await runAction(surface.page, { delay_ms: 1, type: "mouse_down" });
+
+    for (const selector of [
+      { css: ".save", strict: true },
+      { exact: true, title: "Save" },
+      { alt_text: "Logo" },
+      { altText: "Logo" },
+      { testId: "save" },
+    ]) {
+      await runAction(surface.page, { selector, type: "hover" });
+    }
+
+    vi.mocked(surface.page.keyboard.up).mockRejectedValueOnce(new Error("key already released"));
+    await expect(
+      runAction(surface.page, {
+        modifiers: ["Control"],
+        type: "click",
+        x: 1,
+        y: 2,
+      }),
+    ).resolves.toContain("clicked");
+  });
+
+  it("rejects malformed actions before issuing browser input", async () => {
+    const page = createFakeSurface().page;
+    const invalidActions = [
+      {},
+      { type: "unsupported" },
+      { type: "navigate", url: "" },
+      { type: "focus" },
+      { keys: ["Control", 1], type: "keypress" },
+      { type: "select" },
+      { button: "side", type: "click", x: 1, y: 2 },
+      { modifiers: ["CapsLock"], type: "click", x: 1, y: 2 },
+      { type: "click", x: Number.NaN, y: 2 },
+      { selector: 3, type: "click" },
+      { selector: { unknown: "value" }, type: "click" },
+    ];
+
+    for (const action of invalidActions) {
+      await expect(runAction(page, action)).rejects.toThrow();
+    }
   });
 });

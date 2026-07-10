@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  compactText,
+  encodedJsonBytes,
   failureResponse,
   hasNativeImage,
   parseComputerUseCall,
@@ -56,5 +58,36 @@ describe("native provider contract", () => {
       error: "invalid_input: bad request",
       success: false,
     });
+
+    const imagedFailure = failureResponse(
+      "INVALID CODE",
+      "x".repeat(1400),
+      "data:image/png;base64,ZmFrZQ==",
+    );
+    expect(hasNativeImage(imagedFailure)).toBe(true);
+    expect(imagedFailure.error).toMatch(/^provider_error: /);
+    expect(imagedFailure.error?.length).toBeLessThanOrEqual(816);
+    expect(encodedJsonBytes(imagedFailure)).toBeGreaterThan(0);
+    expect(compactText("alpha\u007fbeta", 6)).toBe("alpha…");
+  });
+
+  it("rejects malformed visual response content", () => {
+    expect(() =>
+      parseComputerUseResponse({
+        contentItems: [
+          { imageUrl: "https://example.com/image.jpg", type: "inputImage" },
+        ],
+        success: true,
+      }),
+    ).toThrow();
+    expect(() =>
+      parseComputerUseResponse({
+        contentItems: [
+          { imageUrl: "data:image/jpeg;base64,ZmFrZQ==", type: "inputImage" },
+        ],
+        error: "unexpected",
+        success: "yes",
+      }),
+    ).toThrow();
   });
 });

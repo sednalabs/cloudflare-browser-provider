@@ -4,6 +4,7 @@ import type { Browser, BrowserContext, CDPSession, Locator, Page } from "@cloudf
 import { vi, type Mock } from "vitest";
 
 import type { BrowserClient } from "../../src/browser/client.js";
+import type { VisibleControl } from "../../src/browser/observe.js";
 import type { RuntimeStorage } from "../../src/browser/runtime.js";
 
 export interface FakeSurface {
@@ -30,7 +31,13 @@ export interface FakeSurface {
 }
 
 export function createFakeSurface(
-  options: { actionFailure?: boolean; url?: string } = {},
+  options: {
+    actionFailure?: boolean;
+    controls?: VisibleControl[];
+    controlsFailure?: boolean;
+    dimensionsFailure?: boolean;
+    url?: string;
+  } = {},
 ): FakeSurface {
   const state = { scrollX: 0, scrollY: 0, url: options.url ?? "https://example.com/?token=hidden" };
   const click = options.actionFailure
@@ -58,7 +65,10 @@ export function createFakeSurface(
       async (operation: (...argumentsValue: unknown[]) => unknown, value?: unknown) => {
         const source = operation.toString();
         if (source.includes("querySelectorAll")) {
-          return [];
+          if (options.controlsFailure === true) {
+            throw new Error("interaction map unavailable");
+          }
+          return options.controls ?? [];
         }
         if (source.includes("scrollTo")) {
           if (typeof value === "number") {
@@ -69,6 +79,9 @@ export function createFakeSurface(
             state.scrollY = coordinates.y ?? state.scrollY;
           }
           return undefined;
+        }
+        if (options.dimensionsFailure === true) {
+          throw new Error("page dimensions unavailable");
         }
         return {
           documentHeight: 1800,

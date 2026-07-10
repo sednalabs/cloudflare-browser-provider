@@ -24,7 +24,7 @@ export interface PageState {
   viewportWidth: number;
 }
 
-interface VisibleControl {
+export interface VisibleControl {
   bottom: number;
   label: string;
   left: number;
@@ -64,18 +64,7 @@ export async function observeFailure(
 export async function pageState(page: Page): Promise<PageState> {
   const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
   const dimensions = await page
-    .evaluate(() => ({
-      documentHeight: Math.max(
-        document.documentElement.scrollHeight,
-        document.body?.scrollHeight ?? 0,
-      ),
-      documentWidth: Math.max(
-        document.documentElement.scrollWidth,
-        document.body?.scrollWidth ?? 0,
-      ),
-      scrollX: window.scrollX,
-      scrollY: window.scrollY,
-    }))
+    .evaluate(readPageDimensions)
     .catch(() => ({
       documentHeight: viewport.height,
       documentWidth: viewport.width,
@@ -119,59 +108,77 @@ async function boundedScreenshot(page: Page): Promise<string> {
 }
 
 async function visibleControls(page: Page): Promise<VisibleControl[]> {
-  return page
-    .evaluate((limit) => {
-      const nodes = Array.from(
-        document.querySelectorAll<HTMLElement>(
-          "a,button,input,select,textarea,[role],[contenteditable='true'],summary",
-        ),
-      );
-      const results: VisibleControl[] = [];
-      for (const element of nodes) {
-        const box = element.getBoundingClientRect();
-        const style = window.getComputedStyle(element);
-        if (
-          box.width <= 0 ||
-          box.height <= 0 ||
-          box.bottom < 0 ||
-          box.right < 0 ||
-          box.top > window.innerHeight ||
-          box.left > window.innerWidth ||
-          style.display === "none" ||
-          style.visibility === "hidden"
-        ) {
-          continue;
-        }
-        const tag = element.tagName.toLowerCase();
-        const role = element.getAttribute("role") || (tag === "a" ? "link" : tag);
-        const formName = tag === "input" || tag === "select" ? element.getAttribute("name") : null;
-        const selectedLabel =
-          tag === "select" && element instanceof HTMLSelectElement
-            ? element.selectedOptions.item(0)?.textContent
-            : null;
-        const label =
-          element.getAttribute("aria-label") ||
-          element.getAttribute("placeholder") ||
-          element.getAttribute("title") ||
-          formName ||
-          selectedLabel ||
-          element.textContent ||
-          "";
-        results.push({
-          bottom: Math.round(box.bottom),
-          label: label.replace(/\s+/g, " ").trim().slice(0, 120),
-          left: Math.round(box.left),
-          right: Math.round(box.right),
-          role: role.slice(0, 40),
-          top: Math.round(box.top),
-        });
-        if (results.length >= limit) {
-          break;
-        }
-      }
-      return results;
-    }, MAX_CONTROLS)
-    .catch(() => []);
+  return page.evaluate(collectVisibleControls, MAX_CONTROLS).catch(() => []);
+}
+
+export function readPageDimensions(): Pick<
+  PageState,
+  "documentHeight" | "documentWidth" | "scrollX" | "scrollY"
+> {
+  return {
+    documentHeight: Math.max(
+      document.documentElement.scrollHeight,
+      document.body?.scrollHeight ?? 0,
+    ),
+    documentWidth: Math.max(
+      document.documentElement.scrollWidth,
+      document.body?.scrollWidth ?? 0,
+    ),
+    scrollX: window.scrollX,
+    scrollY: window.scrollY,
+  };
+}
+
+export function collectVisibleControls(limit: number): VisibleControl[] {
+  const nodes = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      "a,button,input,select,textarea,[role],[contenteditable='true'],summary",
+    ),
+  );
+  const results: VisibleControl[] = [];
+  for (const element of nodes) {
+    const box = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+    if (
+      box.width <= 0 ||
+      box.height <= 0 ||
+      box.bottom < 0 ||
+      box.right < 0 ||
+      box.top > window.innerHeight ||
+      box.left > window.innerWidth ||
+      style.display === "none" ||
+      style.visibility === "hidden"
+    ) {
+      continue;
+    }
+    const tag = element.tagName.toLowerCase();
+    const role = element.getAttribute("role") || (tag === "a" ? "link" : tag);
+    const formName = tag === "input" || tag === "select" ? element.getAttribute("name") : null;
+    const selectedLabel =
+      tag === "select" && element instanceof HTMLSelectElement
+        ? element.selectedOptions.item(0)?.textContent
+        : null;
+    const label =
+      element.getAttribute("aria-label") ||
+      element.getAttribute("placeholder") ||
+      element.getAttribute("title") ||
+      formName ||
+      selectedLabel ||
+      element.textContent ||
+      "";
+    results.push({
+      bottom: Math.round(box.bottom),
+      label: label.replace(/\s+/g, " ").trim().slice(0, 120),
+      left: Math.round(box.left),
+      right: Math.round(box.right),
+      role: role.slice(0, 40),
+      top: Math.round(box.top),
+    });
+    if (results.length >= limit) {
+      break;
+    }
+  }
+  return results;
 }
 
 function observationText(
