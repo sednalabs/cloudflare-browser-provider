@@ -91,7 +91,7 @@ describe("browser observations", () => {
       new FakeElement({ tag: "SUMMARY" }),
     ];
     vi.stubGlobal("HTMLSelectElement", FakeSelectElement);
-    vi.stubGlobal("document", { querySelectorAll: () => elements } as unknown as Document);
+    vi.stubGlobal("document", { querySelectorAll: () => elements });
     vi.stubGlobal("window", {
       getComputedStyle: (element: FakeElement) => ({
         display: element.display,
@@ -99,7 +99,7 @@ describe("browser observations", () => {
       }),
       innerHeight: 100,
       innerWidth: 100,
-    } as unknown as Window & typeof globalThis);
+    });
 
     const controls = collectVisibleControls(80);
 
@@ -120,8 +120,8 @@ describe("browser observations", () => {
       body: { scrollHeight: 900, scrollWidth: 700 },
       documentElement: { scrollHeight: 800, scrollWidth: 600 },
     };
-    vi.stubGlobal("document", documentValue as unknown as Document);
-    vi.stubGlobal("window", { scrollX: 11, scrollY: 22 } as unknown as Window & typeof globalThis);
+    vi.stubGlobal("document", documentValue);
+    vi.stubGlobal("window", { scrollX: 11, scrollY: 22 });
 
     expect(readPageDimensions()).toEqual({
       documentHeight: 900,
@@ -133,7 +133,7 @@ describe("browser observations", () => {
     vi.stubGlobal("document", {
       body: undefined,
       documentElement: documentValue.documentElement,
-    } as unknown as Document);
+    });
     expect(readPageDimensions().documentHeight).toBe(800);
   });
 
