@@ -74,17 +74,13 @@ describe("native provider contract", () => {
   it("rejects malformed visual response content", () => {
     expect(() =>
       parseComputerUseResponse({
-        contentItems: [
-          { imageUrl: "https://example.com/image.jpg", type: "inputImage" },
-        ],
+        contentItems: [{ imageUrl: "https://example.com/image.jpg", type: "inputImage" }],
         success: true,
       }),
     ).toThrow();
     expect(() =>
       parseComputerUseResponse({
-        contentItems: [
-          { imageUrl: "data:image/jpeg;base64,ZmFrZQ==", type: "inputImage" },
-        ],
+        contentItems: [{ imageUrl: "data:image/jpeg;base64,ZmFrZQ==", type: "inputImage" }],
         error: "unexpected",
         success: "yes",
       }),

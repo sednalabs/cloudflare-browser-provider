@@ -184,6 +184,8 @@ describe("command adapter HTTP client", () => {
 
     const failure = vi.fn(async () => new Response(null, { status: 503 }));
     await expect(providerHealth(accessConfig, failure)).rejects.toThrow("health returned HTTP 503");
-    await expect(providerLimits(accessConfig, failure)).rejects.toThrow("provider returned HTTP 503");
+    await expect(providerLimits(accessConfig, failure)).rejects.toThrow(
+      "provider returned HTTP 503",
+    );
   });
 });

@@ -91,21 +91,15 @@ describe("browser observations", () => {
       new FakeElement({ tag: "SUMMARY" }),
     ];
     vi.stubGlobal("HTMLSelectElement", FakeSelectElement);
-    vi.stubGlobal(
-      "document",
-      { querySelectorAll: () => elements } as unknown as Document,
-    );
-    vi.stubGlobal(
-      "window",
-      {
-        getComputedStyle: (element: FakeElement) => ({
-          display: element.display,
-          visibility: element.visibility,
-        }),
-        innerHeight: 100,
-        innerWidth: 100,
-      } as unknown as Window & typeof globalThis,
-    );
+    vi.stubGlobal("document", { querySelectorAll: () => elements } as unknown as Document);
+    vi.stubGlobal("window", {
+      getComputedStyle: (element: FakeElement) => ({
+        display: element.display,
+        visibility: element.visibility,
+      }),
+      innerHeight: 100,
+      innerWidth: 100,
+    } as unknown as Window & typeof globalThis);
 
     const controls = collectVisibleControls(80);
 
@@ -136,21 +130,16 @@ describe("browser observations", () => {
       scrollY: 22,
     });
 
-    vi.stubGlobal(
-      "document",
-      {
-        body: undefined,
-        documentElement: documentValue.documentElement,
-      } as unknown as Document,
-    );
+    vi.stubGlobal("document", {
+      body: undefined,
+      documentElement: documentValue.documentElement,
+    } as unknown as Document);
     expect(readPageDimensions().documentHeight).toBe(800);
   });
 
   it("includes lifecycle, action, and interaction-map context", async () => {
     const surface = createFakeSurface({
-      controls: [
-        { bottom: 40, label: "Save", left: 10, right: 60, role: "button", top: 20 },
-      ],
+      controls: [{ bottom: 40, label: "Save", left: 10, right: 60, role: "button", top: 20 }],
     });
 
     const response = await observeSuccess(surface.page, ["clicked selector"], ["reconnected"]);

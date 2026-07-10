@@ -63,14 +63,12 @@ export async function observeFailure(
 
 export async function pageState(page: Page): Promise<PageState> {
   const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
-  const dimensions = await page
-    .evaluate(readPageDimensions)
-    .catch(() => ({
-      documentHeight: viewport.height,
-      documentWidth: viewport.width,
-      scrollX: 0,
-      scrollY: 0,
-    }));
+  const dimensions = await page.evaluate(readPageDimensions).catch(() => ({
+    documentHeight: viewport.height,
+    documentWidth: viewport.width,
+    scrollX: 0,
+    scrollY: 0,
+  }));
   return {
     ...dimensions,
     title: compactText(await page.title().catch(() => ""), 240),
@@ -120,10 +118,7 @@ export function readPageDimensions(): Pick<
       document.documentElement.scrollHeight,
       document.body?.scrollHeight ?? 0,
     ),
-    documentWidth: Math.max(
-      document.documentElement.scrollWidth,
-      document.body?.scrollWidth ?? 0,
-    ),
+    documentWidth: Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth ?? 0),
     scrollX: window.scrollX,
     scrollY: window.scrollY,
   };

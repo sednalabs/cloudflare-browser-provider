@@ -193,10 +193,10 @@ describe("BrowserSessionRuntime", () => {
       }),
     );
 
-    expect(surface.spies.goto).toHaveBeenCalledWith(
-      "https://example.com/start?token=discarded",
-      { timeout: 1000, waitUntil: "domcontentloaded" },
-    );
+    expect(surface.spies.goto).toHaveBeenCalledWith("https://example.com/start?token=discarded", {
+      timeout: 1000,
+      waitUntil: "domcontentloaded",
+    });
     expect(surface.state.scrollY).toBe(321);
     expect(storage.values.get("session:page-state")).toMatchObject({
       url: "https://example.com/start",
@@ -325,11 +325,9 @@ describe("BrowserSessionRuntime", () => {
     const surface = createFakeSurface();
     vi.mocked(surface.browser.contexts).mockReturnValue([]);
     vi.mocked(surface.context.pages).mockReturnValue([]);
-    const runtime = new BrowserSessionRuntime(
-      new MemoryStorage(),
-      new FakeBrowserClient(surface),
-      { keepAliveMs: 120_000 },
-    );
+    const runtime = new BrowserSessionRuntime(new MemoryStorage(), new FakeBrowserClient(surface), {
+      keepAliveMs: 120_000,
+    });
 
     const response = await runtime.handle(call({ callId: "new-surface" }));
 
