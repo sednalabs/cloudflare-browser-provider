@@ -1,1 +1,1 @@
-| .github/workflows/unsafe.yml:12:9:12:33 | UsesStep: actions/checkout@v4 | Pin the external action 'actions/checkout@v4' to a reviewed full-length commit SHA and keep update automation enabled. |
+| .github/workflows/unsafe.yml:12:9:12:34 | Uses Step | Pin the external action 'actions/checkout@v4' to a reviewed full-length commit SHA and keep update automation enabled. |

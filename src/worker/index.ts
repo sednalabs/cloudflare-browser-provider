@@ -233,14 +233,14 @@ function isolationMode(value: string | undefined): IsolationMode {
 }
 
 function identityCall(identity: {
-  environmentId?: string | null;
+  environmentId?: string | null | undefined;
   threadId: string;
 }): ComputerUseCall {
   return {
     adapter: "browser",
     arguments: {},
     callId: "purge",
-    environmentId: identity.environmentId,
+    ...(identity.environmentId === undefined ? {} : { environmentId: identity.environmentId }),
     threadId: identity.threadId,
     tool: "browser_observe",
     turnId: "purge",

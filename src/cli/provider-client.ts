@@ -43,7 +43,14 @@ export function providerClientConfig(
   const timeoutMs = Number.isFinite(timeoutSeconds)
     ? Math.min(180_000, Math.max(1000, Math.trunc(timeoutSeconds * 1000)))
     : 120_000;
-  return { accessClientId, accessClientSecret, timeoutMs, token, url };
+  return {
+    ...(accessClientId === undefined || accessClientSecret === undefined
+      ? {}
+      : { accessClientId, accessClientSecret }),
+    timeoutMs,
+    token,
+    url,
+  };
 }
 
 export async function invokeProvider(
@@ -110,12 +117,15 @@ async function authenticatedJson(
   method: "GET" | "POST",
   body?: unknown,
 ): Promise<unknown> {
-  const response = await fetchImplementation(endpoint(config.url, path), {
-    body: body === undefined ? undefined : JSON.stringify(body),
+  const request: RequestInit = {
     headers: requestHeaders(config),
     method,
     signal: AbortSignal.timeout(config.timeoutMs),
-  });
+  };
+  if (body !== undefined) {
+    request.body = JSON.stringify(body);
+  }
+  const response = await fetchImplementation(endpoint(config.url, path), request);
   if (!response.ok) {
     throw new Error(`provider returned HTTP ${response.status}`);
   }

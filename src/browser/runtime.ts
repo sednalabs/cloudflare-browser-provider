@@ -292,7 +292,14 @@ export class BrowserSessionRuntime {
         record.response !== undefined &&
         age > REPLAY_WINDOW_MS
       ) {
-        updates.push(this.storage.put<CallRecord>(key, { ...record, response: undefined }));
+        updates.push(
+          this.storage.put<CallRecord>(key, {
+            ...(record.completedAt === undefined ? {} : { completedAt: record.completedAt }),
+            mutating: record.mutating,
+            startedAt: record.startedAt,
+            status: record.status,
+          }),
+        );
       }
       if (age > TOMBSTONE_WINDOW_MS) {
         removals.push(key);

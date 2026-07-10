@@ -1,1 +1,1 @@
-| .github/workflows/unsafe.yml:9:3:12:62 | Job: publish | This job publishes a release without actions/attest-build-provenance. Attest the packaged assets before publication. |
+| .github/workflows/unsafe.yml:10:5:12:60 | Job: publish | This job publishes a release without actions/attest-build-provenance. Attest the packaged assets before publication. |

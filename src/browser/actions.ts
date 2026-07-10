@@ -97,7 +97,7 @@ export async function runAction(page: Page, action: UnknownRecord): Promise<stri
       return "hovered browser element";
     case "mouse_move":
       await page.mouse.move(requiredNumber(action, "x"), requiredNumber(action, "y"), {
-        steps: positiveInteger(action.steps),
+        ...stepsOption(action.steps),
       });
       return "moved browser pointer";
     case "mouse_down":
@@ -107,6 +107,7 @@ export async function runAction(page: Page, action: UnknownRecord): Promise<stri
       await mouseButtonEvent(page, action, "up");
       return "sent browser mouse up";
   }
+  throw new ProviderActionError("unsupported_action", "Unsupported browser action.");
 }
 
 export function publicNavigationUrl(value: string): URL {
@@ -169,16 +170,16 @@ async function click(page: Page, action: UnknownRecord): Promise<void> {
     if (locator !== undefined) {
       await locator.click({
         button: mouseButton(action),
-        clickCount: positiveInteger(action.click_count),
-        delay: nonNegativeInteger(action.delay_ms),
+        ...clickCountOption(action.click_count),
+        ...delayOption(action.delay_ms),
         timeout: timeoutMs(action),
       });
       return;
     }
     await page.mouse.click(requiredNumber(action, "x"), requiredNumber(action, "y"), {
       button: mouseButton(action),
-      clickCount: positiveInteger(action.click_count),
-      delay: nonNegativeInteger(action.delay_ms),
+      ...clickCountOption(action.click_count),
+      ...delayOption(action.delay_ms),
     });
   });
 }
@@ -197,7 +198,7 @@ async function typeText(page: Page, action: UnknownRecord): Promise<void> {
       await selectAllAndClear(page);
     }
   }
-  await page.keyboard.type(text, { delay: nonNegativeInteger(action.delay_ms) });
+  await page.keyboard.type(text, delayOption(action.delay_ms));
 }
 
 async function focus(page: Page, action: UnknownRecord): Promise<void> {
@@ -234,7 +235,7 @@ async function keypress(page: Page, action: UnknownRecord): Promise<void> {
   if (key === undefined || key === "") {
     throw new ProviderActionError("key_required", "Keypress requires key or keys.");
   }
-  await page.keyboard.press(key, { delay: nonNegativeInteger(action.delay_ms) });
+  await page.keyboard.press(key, delayOption(action.delay_ms));
 }
 
 async function select(page: Page, action: UnknownRecord): Promise<void> {
@@ -253,12 +254,12 @@ async function select(page: Page, action: UnknownRecord): Promise<void> {
 async function drag(page: Page, action: UnknownRecord): Promise<void> {
   await withModifiers(page, action, async () => {
     await page.mouse.move(requiredNumber(action, "x1"), requiredNumber(action, "y1"), {
-      steps: positiveInteger(action.steps),
+      ...stepsOption(action.steps),
     });
     await page.mouse.down({ button: mouseButton(action) });
     try {
       await page.mouse.move(requiredNumber(action, "x2"), requiredNumber(action, "y2"), {
-        steps: positiveInteger(action.steps),
+        ...stepsOption(action.steps),
       });
     } finally {
       await page.mouse.up({ button: mouseButton(action) });
@@ -273,7 +274,7 @@ async function hover(page: Page, action: UnknownRecord): Promise<void> {
     return;
   }
   await page.mouse.move(requiredNumber(action, "x"), requiredNumber(action, "y"), {
-    steps: positiveInteger(action.steps),
+    ...stepsOption(action.steps),
   });
 }
 
@@ -308,27 +309,29 @@ function locatorFromAction(page: Page, action: UnknownRecord): Locator | undefin
   }
 
   const exact = typeof selector.exact === "boolean" ? selector.exact : undefined;
+  const exactOptions = exact === undefined ? {} : { exact };
   const strict = selector.strict === true;
   let locator: Locator | undefined;
   if (typeof selector.css === "string") {
     locator = page.locator(selector.css);
   } else if (typeof selector.text === "string") {
-    locator = page.getByText(selector.text, { exact });
+    locator = page.getByText(selector.text, exactOptions);
   } else if (typeof selector.label === "string") {
-    locator = page.getByLabel(selector.label, { exact });
+    locator = page.getByLabel(selector.label, exactOptions);
   } else if (typeof selector.placeholder === "string") {
-    locator = page.getByPlaceholder(selector.placeholder, { exact });
+    locator = page.getByPlaceholder(selector.placeholder, exactOptions);
   } else if (typeof selector.test_id === "string" || typeof selector.testId === "string") {
     locator = page.getByTestId(String(selector.test_id ?? selector.testId));
   } else if (typeof selector.title === "string") {
-    locator = page.getByTitle(selector.title, { exact });
+    locator = page.getByTitle(selector.title, exactOptions);
   } else if (typeof selector.alt_text === "string" || typeof selector.altText === "string") {
-    locator = page.getByAltText(String(selector.alt_text ?? selector.altText), { exact });
+    locator = page.getByAltText(String(selector.alt_text ?? selector.altText), exactOptions);
   } else if (typeof selector.role === "string") {
     const role = selector.role as Parameters<Page["getByRole"]>[0];
+    const name = typeof selector.name === "string" ? selector.name : undefined;
     locator = page.getByRole(role, {
-      exact,
-      name: typeof selector.name === "string" ? selector.name : undefined,
+      ...exactOptions,
+      ...(name === undefined ? {} : { name }),
     });
   }
   if (locator === undefined) {
@@ -448,6 +451,21 @@ function positiveInteger(value: unknown): number | undefined {
 
 function nonNegativeInteger(value: unknown): number | undefined {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : undefined;
+}
+
+function clickCountOption(value: unknown): { clickCount?: number } {
+  const clickCount = positiveInteger(value);
+  return clickCount === undefined ? {} : { clickCount };
+}
+
+function delayOption(value: unknown): { delay?: number } {
+  const delay = nonNegativeInteger(value);
+  return delay === undefined ? {} : { delay };
+}
+
+function stepsOption(value: unknown): { steps?: number } {
+  const steps = positiveInteger(value);
+  return steps === undefined ? {} : { steps };
 }
 
 function clampedInteger(value: number, minimum: number, maximum: number): number {
