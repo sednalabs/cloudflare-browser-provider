@@ -61,3 +61,7 @@ The CLI sends the validated call to `POST /v1/calls` in this envelope:
 The Worker requires bearer authentication. A deployment may additionally use a Cloudflare Access
 service token; the CLI reads those header values from environment variables and never includes them
 in diagnostics.
+
+Authenticated `GET /v1/limits` returns Cloudflare's current acquisition allowance and active-session
+count plus aggregate admission-controller counters. It does not return browser session IDs, queue
+identities, URLs, or credentials.

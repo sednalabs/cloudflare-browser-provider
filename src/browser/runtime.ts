@@ -14,6 +14,7 @@ import {
   runAction,
 } from "./actions.js";
 import type { BrowserClient } from "./client.js";
+import type { BrowserAcquirer } from "./admission.js";
 import { observeFailure, observeSuccess, pageState } from "./observe.js";
 
 const SESSION_KEY = "session:id";
@@ -53,6 +54,7 @@ interface BrowserConnection {
 }
 
 export interface RuntimeOptions {
+  acquirer?: BrowserAcquirer;
   keepAliveMs: number;
   now?: () => number;
 }
@@ -129,7 +131,7 @@ export class BrowserSessionRuntime {
   }
 
   private async execute(call: ComputerUseCall): Promise<ComputerUseResponse> {
-    const connection = await this.openBrowser();
+    const connection = await this.openBrowser(call);
     const { browser, lifecycleNotes, replacement } = connection;
     try {
       const context = await activeContext(browser);
@@ -164,7 +166,7 @@ export class BrowserSessionRuntime {
     }
   }
 
-  private async openBrowser(): Promise<BrowserConnection> {
+  private async openBrowser(call: ComputerUseCall): Promise<BrowserConnection> {
     const existingSession = await this.storage.get<string>(SESSION_KEY);
     if (existingSession !== undefined) {
       try {
@@ -180,7 +182,13 @@ export class BrowserSessionRuntime {
 
     let sessionId: string;
     try {
-      sessionId = await this.client.acquire(this.options.keepAliveMs);
+      sessionId =
+        this.options.acquirer === undefined
+          ? await this.client.acquire(this.options.keepAliveMs)
+          : await this.options.acquirer.acquire(
+              await acquisitionRequestId(call),
+              this.options.keepAliveMs,
+            );
     } catch {
       throw new RuntimeError(
         "browser_capacity",
@@ -399,4 +407,8 @@ function numberOrUndefined(value: unknown): number | undefined {
 async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function acquisitionRequestId(call: ComputerUseCall): Promise<string> {
+  return sha256Hex(`${call.threadId}\u0000${call.callId}`);
 }
