@@ -279,9 +279,7 @@ describe("BrowserAdmissionRuntime", () => {
       ),
     );
 
-    await expect(runtime.acquire(requestId(1), 120_000)).rejects.toThrow(
-      "temporary alarm failure",
-    );
+    await expect(runtime.acquire(requestId(1), 120_000)).rejects.toThrow("temporary alarm failure");
     await expect(runtime.acquire(requestId(1), 120_000)).resolves.toBe("session-1");
     expect(setAlarm).toHaveBeenCalledTimes(3);
   });
