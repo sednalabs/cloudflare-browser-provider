@@ -58,9 +58,9 @@ Every call ID receives an at-most-once record before browser actions start. Comp
 replayed for a bounded window. Older mutating calls retain a tombstone so the provider fails closed
 instead of repeating an action whose outcome is uncertain.
 
-Browser acquisition requests use a one-way digest of thread and call material. The coordinator
-never receives the original thread identifier. If an acquisition result is uncertain, its
-reservation remains tombstoned until expiry instead of launching a possible duplicate browser.
+Browser acquisition requests use a one-way digest of thread and call material. The coordinator never
+receives the original thread identifier. If an acquisition result is uncertain, its reservation
+remains tombstoned until expiry instead of launching a possible duplicate browser.
 
 ## Source harvest
 

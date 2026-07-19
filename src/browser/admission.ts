@@ -69,10 +69,7 @@ export class BrowserAdmissionRuntime implements BrowserAcquirer {
   acquire(requestId: string, keepAliveMs: number): Promise<string> {
     if (this.pendingCount >= this.options.queueLimit) {
       return Promise.reject(
-        new AdmissionError(
-          "browser_capacity",
-          "Browser acquisition queue is full. Retry later.",
-        ),
+        new AdmissionError("browser_capacity", "Browser acquisition queue is full. Retry later."),
       );
     }
 
@@ -165,10 +162,7 @@ export class BrowserAdmissionRuntime implements BrowserAcquirer {
 
     const record: AdmissionRecord = {
       createdAt: this.now(),
-      expiresAt: Math.max(
-        this.now() + this.options.reservationTtlMs,
-        deadline + 5000,
-      ),
+      expiresAt: Math.max(this.now() + this.options.reservationTtlMs, deadline + 5000),
       status: "inflight",
     };
     await this.storage.put(recordKey, record);
@@ -215,10 +209,7 @@ export class BrowserAdmissionRuntime implements BrowserAcquirer {
         this.options.maxActiveSessions,
         Math.max(0, limits.maxConcurrentSessions),
       );
-      if (
-        limits.activeSessions.length < configuredLimit &&
-        limits.allowedBrowserAcquisitions > 0
-      ) {
+      if (limits.activeSessions.length < configuredLimit && limits.allowedBrowserAcquisitions > 0) {
         try {
           return await this.client.acquire(keepAliveMs);
         } catch {

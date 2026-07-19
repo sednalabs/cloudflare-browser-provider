@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  BrowserAdmissionRuntime,
-  type AdmissionOptions,
-} from "../src/browser/admission.js";
+import { BrowserAdmissionRuntime, type AdmissionOptions } from "../src/browser/admission.js";
 import { MemoryStorage } from "./helpers/fakes.js";
 
 class FakeAdmissionBrowserClient {
@@ -70,12 +67,8 @@ describe("BrowserAdmissionRuntime", () => {
       Array.from({ length: 16 }, (_, index) => runtime.acquire(requestId(index + 1), 120_000)),
     );
 
-    expect(sessions).toEqual(
-      Array.from({ length: 16 }, (_, index) => `session-${index + 1}`),
-    );
-    expect(client.acquisitionTimes).toEqual(
-      Array.from({ length: 16 }, (_, index) => index * 1000),
-    );
+    expect(sessions).toEqual(Array.from({ length: 16 }, (_, index) => `session-${index + 1}`));
+    expect(client.acquisitionTimes).toEqual(Array.from({ length: 16 }, (_, index) => index * 1000));
   });
 
   it("replays a completed acquisition without launching another browser", async () => {

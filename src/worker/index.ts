@@ -163,12 +163,7 @@ export class BrowserAdmission {
       {
         maxActiveSessions: integerSetting(env.BROWSER_MAX_ACTIVE_SESSIONS, 16, 1, 120),
         queueLimit: integerSetting(env.BROWSER_ADMISSION_QUEUE_LIMIT, 32, 1, 256),
-        reservationTtlMs: integerSetting(
-          env.BROWSER_RESERVATION_TTL_MS,
-          30_000,
-          5_000,
-          600_000,
-        ),
+        reservationTtlMs: integerSetting(env.BROWSER_RESERVATION_TTL_MS, 30_000, 5_000, 600_000),
         waitMs: integerSetting(env.BROWSER_ADMISSION_WAIT_MS, 60_000, 1_000, 120_000),
       },
     );
