@@ -169,9 +169,9 @@ export class BrowserAdmissionRuntime implements BrowserAcquirer {
       status: "inflight",
     };
     await this.storage.put(recordKey, record);
-    await this.scheduleCleanup(record.expiresAt);
 
     try {
+      await this.scheduleCleanup(record.expiresAt);
       const sessionId = await this.acquireWhenAllowed(keepAliveMs, deadline);
       const completed: AdmissionRecord = {
         ...record,
