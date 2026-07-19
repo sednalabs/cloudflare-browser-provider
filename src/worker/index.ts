@@ -211,10 +211,11 @@ class DurableObjectAdmissionClient implements BrowserAcquirer {
       throw new Error("browser admission failed");
     }
     const body: unknown = await response.json().catch(() => undefined);
-    if (!recordWithString(body, "sessionId")) {
+    const sessionId = stringField(body, "sessionId");
+    if (sessionId === undefined) {
       throw new Error("browser admission returned an invalid response");
     }
-    return body.sessionId;
+    return sessionId;
   }
 }
 
@@ -375,13 +376,12 @@ function validAdmissionRequest(
   );
 }
 
-function recordWithString(value: unknown, key: string): value is Record<string, string> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    !Array.isArray(value) &&
-    typeof (value as Record<string, unknown>)[key] === "string"
-  );
+function stringField(value: unknown, key: string): string | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === "string" ? field : undefined;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
