@@ -344,7 +344,7 @@ async function admissionStatus(env: Env): Promise<AdmissionStatus> {
   if (!response.ok) {
     throw new Error("admission status unavailable");
   }
-  return (await response.json()) as AdmissionStatus;
+  return await response.json();
 }
 
 function integerSetting(
