@@ -207,9 +207,12 @@ class DurableObjectAdmissionClient implements BrowserAcquirer {
       headers: { "content-type": "application/json" },
       method: "POST",
     });
-    const body: unknown = await response.json();
-    if (!response.ok || !recordWithString(body, "sessionId")) {
+    if (!response.ok) {
       throw new Error("browser admission failed");
+    }
+    const body: unknown = await response.json().catch(() => undefined);
+    if (!recordWithString(body, "sessionId")) {
+      throw new Error("browser admission returned an invalid response");
     }
     return body.sessionId;
   }

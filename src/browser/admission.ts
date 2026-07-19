@@ -85,6 +85,9 @@ export class BrowserAdmissionRuntime implements BrowserAcquirer {
     );
     return result.finally(() => {
       this.pendingCount -= 1;
+      if (this.pendingCount === 0) {
+        this.serial = Promise.resolve();
+      }
     });
   }
 
@@ -199,10 +202,15 @@ export class BrowserAdmissionRuntime implements BrowserAcquirer {
       try {
         limits = await this.client.limits();
       } catch {
-        throw new AdmissionError(
-          "browser_limits_unavailable",
-          "Browser Run limits are unavailable. Retry later.",
-        );
+        const remaining = deadline - this.now();
+        if (remaining <= 1000) {
+          throw new AdmissionError(
+            "browser_limits_unavailable",
+            "Browser Run limits are unavailable. Retry later.",
+          );
+        }
+        await this.sleep(Math.min(remaining, 1000));
+        continue;
       }
 
       const configuredLimit = Math.min(
@@ -242,7 +250,7 @@ export class BrowserAdmissionRuntime implements BrowserAcquirer {
     if (this.nextAlarmAt !== undefined && this.nextAlarmAt <= expiresAt) {
       return;
     }
-    this.nextAlarmAt = expiresAt;
     await this.storage.setAlarm(expiresAt);
+    this.nextAlarmAt = expiresAt;
   }
 }

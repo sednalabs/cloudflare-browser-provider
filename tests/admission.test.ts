@@ -147,6 +147,53 @@ describe("BrowserAdmissionRuntime", () => {
     expect(client.acquire).not.toHaveBeenCalled();
   });
 
+  it("retries transient limits failures within the configured deadline", async () => {
+    let now = 0;
+    const client = new FakeAdmissionBrowserClient(() => now);
+    client.limits
+      .mockRejectedValueOnce(new Error("temporary limits failure"))
+      .mockRejectedValueOnce(new Error("temporary limits failure"));
+    const runtime = new BrowserAdmissionRuntime(
+      new MemoryStorage(),
+      client,
+      runtimeOptions(
+        () => now,
+        (milliseconds) => {
+          now += milliseconds;
+          return Promise.resolve();
+        },
+      ),
+    );
+
+    await expect(runtime.acquire(requestId(1), 120_000)).resolves.toBe("session-1");
+    expect(now).toBe(2000);
+    expect(client.limits).toHaveBeenCalledTimes(3);
+  });
+
+  it("fails closed when limits stay unavailable near the deadline", async () => {
+    let now = 0;
+    const client = new FakeAdmissionBrowserClient(() => now);
+    client.limits.mockRejectedValue(new Error("persistent limits failure"));
+    const runtime = new BrowserAdmissionRuntime(
+      new MemoryStorage(),
+      client,
+      runtimeOptions(
+        () => now,
+        (milliseconds) => {
+          now += milliseconds;
+          return Promise.resolve();
+        },
+        { waitMs: 2500 },
+      ),
+    );
+
+    await expect(runtime.acquire(requestId(1), 120_000)).rejects.toMatchObject({
+      code: "browser_limits_unavailable",
+    });
+    expect(now).toBe(2000);
+    expect(client.acquire).not.toHaveBeenCalled();
+  });
+
   it("tombstones an uncertain acquisition until its reservation expires", async () => {
     let now = 0;
     const storage = new MemoryStorage();
@@ -211,5 +258,31 @@ describe("BrowserAdmissionRuntime", () => {
       reservationCount: 0,
     });
     expect(storage.values.size).toBe(0);
+  });
+
+  it("retries alarm scheduling after a storage failure", async () => {
+    let now = 0;
+    const storage = new MemoryStorage();
+    const setAlarm = vi
+      .spyOn(storage, "setAlarm")
+      .mockRejectedValueOnce(new Error("temporary alarm failure"));
+    const client = new FakeAdmissionBrowserClient(() => now);
+    const runtime = new BrowserAdmissionRuntime(
+      storage,
+      client,
+      runtimeOptions(
+        () => now,
+        (milliseconds) => {
+          now += milliseconds;
+          return Promise.resolve();
+        },
+      ),
+    );
+
+    await expect(runtime.acquire(requestId(1), 120_000)).rejects.toThrow(
+      "temporary alarm failure",
+    );
+    await expect(runtime.acquire(requestId(1), 120_000)).resolves.toBe("session-1");
+    expect(setAlarm).toHaveBeenCalledTimes(3);
   });
 });
