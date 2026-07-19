@@ -13,12 +13,20 @@
         "name": "BROWSER_SESSIONS",
         "class_name": "BrowserSession",
       },
+      {
+        "name": "BROWSER_ADMISSION",
+        "class_name": "BrowserAdmission",
+      },
     ],
   },
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": ["BrowserSession"],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["BrowserAdmission"],
     },
   ],
   "limits": {
@@ -28,5 +36,9 @@
     "PROVIDER_PROTOCOL_VERSION": "1",
     "BROWSER_ISOLATION": "thread",
     "BROWSER_KEEP_ALIVE_MS": "120000",
+    "BROWSER_MAX_ACTIVE_SESSIONS": "16",
+    "BROWSER_ADMISSION_QUEUE_LIMIT": "32",
+    "BROWSER_ADMISSION_WAIT_MS": "60000",
+    "BROWSER_RESERVATION_TTL_MS": "30000",
   },
 }

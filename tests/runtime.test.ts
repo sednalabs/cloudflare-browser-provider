@@ -47,6 +47,29 @@ describe("BrowserSessionRuntime", () => {
     expect(storage.listCount).toBe(0);
   });
 
+  it("uses an opaque admission request only when a new session is required", async () => {
+    const storage = new MemoryStorage();
+    const surface = createFakeSurface();
+    const client = new FakeBrowserClient(surface);
+    const acquirer = { acquire: vi.fn().mockResolvedValue("admitted-session") };
+    const runtime = new BrowserSessionRuntime(storage, client, {
+      acquirer,
+      keepAliveMs: 120_000,
+    });
+
+    await runtime.handle(call({ callId: "admitted-call" }));
+
+    expect(acquirer.acquire).toHaveBeenCalledWith(expect.stringMatching(/^[a-f0-9]{64}$/), 120_000);
+    expect(client.acquire).not.toHaveBeenCalled();
+    expect(client.connect).toHaveBeenCalledWith("admitted-session");
+    expect(storage.values.get("session:id")).toBe("admitted-session");
+
+    acquirer.acquire.mockClear();
+    await runtime.handle(call({ callId: "reconnected-call" }));
+    expect(acquirer.acquire).not.toHaveBeenCalled();
+    expect(client.connect).toHaveBeenLastCalledWith("admitted-session");
+  });
+
   it("replays a completed mutating call instead of repeating the action", async () => {
     const storage = new MemoryStorage();
     const surface = createFakeSurface();

@@ -1,5 +1,11 @@
 import type { BrowserWorker } from "@cloudflare/playwright";
 
+import {
+  AdmissionError,
+  BrowserAdmissionRuntime,
+  type AdmissionStatus,
+  type BrowserAcquirer,
+} from "../browser/admission.js";
 import { BrowserSessionRuntime } from "../browser/runtime.js";
 import { CloudflareBrowserClient } from "../browser/client.js";
 import {
@@ -16,8 +22,13 @@ type IsolationMode = "call" | "environment" | "shared" | "thread";
 
 interface Env {
   BROWSER: BrowserWorker;
+  BROWSER_ADMISSION: DurableObjectNamespace;
+  BROWSER_ADMISSION_QUEUE_LIMIT?: string;
+  BROWSER_ADMISSION_WAIT_MS?: string;
   BROWSER_ISOLATION?: string;
   BROWSER_KEEP_ALIVE_MS?: string;
+  BROWSER_MAX_ACTIVE_SESSIONS?: string;
+  BROWSER_RESERVATION_TTL_MS?: string;
   BROWSER_SESSIONS: DurableObjectNamespace;
   PROVIDER_AUTH_TOKEN?: string;
   PROVIDER_PROTOCOL_VERSION?: string;
@@ -66,9 +77,13 @@ const worker = {
 
     if (request.method === "GET" && url.pathname === "/v1/limits") {
       try {
-        const current = await new CloudflareBrowserClient(env.BROWSER).limits();
+        const [current, admission] = await Promise.all([
+          new CloudflareBrowserClient(env.BROWSER).limits(),
+          admissionStatus(env),
+        ]);
         return jsonResponse({
           activeSessionCount: current.activeSessions.length,
+          admission,
           allowedBrowserAcquisitions: current.allowedBrowserAcquisitions,
           maxConcurrentSessions: current.maxConcurrentSessions,
           timeUntilNextAllowedBrowserAcquisition: current.timeUntilNextAllowedBrowserAcquisition,
@@ -95,7 +110,10 @@ export class BrowserSession {
     this.runtime = new BrowserSessionRuntime(
       state.storage,
       new CloudflareBrowserClient(env.BROWSER),
-      { keepAliveMs: keepAliveMs(env) },
+      {
+        acquirer: new DurableObjectAdmissionClient(env.BROWSER_ADMISSION),
+        keepAliveMs: keepAliveMs(env),
+      },
     );
   }
 
@@ -132,6 +150,72 @@ export class BrowserSession {
       () => undefined,
     );
     return result;
+  }
+}
+
+export class BrowserAdmission {
+  private readonly runtime: BrowserAdmissionRuntime;
+
+  constructor(state: DurableObjectState, env: Env) {
+    this.runtime = new BrowserAdmissionRuntime(
+      state.storage,
+      new CloudflareBrowserClient(env.BROWSER),
+      {
+        maxActiveSessions: integerSetting(env.BROWSER_MAX_ACTIVE_SESSIONS, 16, 1, 120),
+        queueLimit: integerSetting(env.BROWSER_ADMISSION_QUEUE_LIMIT, 32, 1, 256),
+        reservationTtlMs: integerSetting(env.BROWSER_RESERVATION_TTL_MS, 30_000, 5_000, 600_000),
+        waitMs: integerSetting(env.BROWSER_ADMISSION_WAIT_MS, 60_000, 1_000, 120_000),
+      },
+    );
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    if (request.method === "POST" && url.pathname === "/acquire") {
+      try {
+        const body = await readJson(request);
+        if (!validAdmissionRequest(body)) {
+          return jsonResponse({ error: "invalid admission request" }, 400);
+        }
+        const sessionId = await this.runtime.acquire(body.requestId, body.keepAliveMs);
+        return jsonResponse({ sessionId });
+      } catch (error) {
+        if (error instanceof AdmissionError) {
+          return jsonResponse({ code: error.code, error: error.message }, 429);
+        }
+        return jsonResponse({ error: "admission control unavailable" }, 503);
+      }
+    }
+    if (request.method === "GET" && url.pathname === "/status") {
+      return jsonResponse(await this.runtime.status());
+    }
+    return jsonResponse({ error: "not found" }, 404);
+  }
+
+  alarm(): Promise<void> {
+    return this.runtime.alarm();
+  }
+}
+
+class DurableObjectAdmissionClient implements BrowserAcquirer {
+  constructor(private readonly namespace: DurableObjectNamespace) {}
+
+  async acquire(requestId: string, keepAliveMs: number): Promise<string> {
+    const stub = this.namespace.get(this.namespace.idFromName("global-v1"));
+    const response = await stub.fetch("https://browser-admission.invalid/acquire", {
+      body: JSON.stringify({ keepAliveMs, requestId }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    if (!response.ok) {
+      throw new Error("browser admission failed");
+    }
+    const body: unknown = await response.json().catch(() => undefined);
+    const sessionId = stringField(body, "sessionId");
+    if (sessionId === undefined) {
+      throw new Error("browser admission returned an invalid response");
+    }
+    return sessionId;
   }
 }
 
@@ -252,6 +336,52 @@ function keepAliveMs(env: Env): number {
   return Number.isFinite(parsed)
     ? Math.min(600_000, Math.max(10_000, Math.trunc(parsed)))
     : 120_000;
+}
+
+async function admissionStatus(env: Env): Promise<AdmissionStatus> {
+  const stub = env.BROWSER_ADMISSION.get(env.BROWSER_ADMISSION.idFromName("global-v1"));
+  const response = await stub.fetch("https://browser-admission.invalid/status");
+  if (!response.ok) {
+    throw new Error("admission status unavailable");
+  }
+  return await response.json();
+}
+
+function integerSetting(
+  value: string | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+): number {
+  const parsed = Number(value ?? fallback);
+  return Number.isFinite(parsed)
+    ? Math.min(maximum, Math.max(minimum, Math.trunc(parsed)))
+    : fallback;
+}
+
+function validAdmissionRequest(
+  value: unknown,
+): value is { keepAliveMs: number; requestId: string } {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.requestId === "string" &&
+    /^[a-f0-9]{64}$/.test(record.requestId) &&
+    typeof record.keepAliveMs === "number" &&
+    Number.isFinite(record.keepAliveMs) &&
+    record.keepAliveMs >= 10_000 &&
+    record.keepAliveMs <= 600_000
+  );
+}
+
+function stringField(value: unknown, key: string): string | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === "string" ? field : undefined;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {

@@ -12,6 +12,8 @@ browser_observe / browser_step
   -> cloudflare-browser-provider stdio adapter
   -> POST /v1/calls
   -> Durable Object selected by a salted browser identity
+  -> existing sessions reconnect directly
+  -> new sessions enter one account-wide admission Durable Object
   -> @cloudflare/playwright acquire/connect
   -> Cloudflare Browser Run
 ```
@@ -25,6 +27,10 @@ details; Codex does not gain another browser vocabulary or an MCP lifecycle.
 
 - A Durable Object provides a single serialization point for one browser identity while allowing
   different threads to run concurrently.
+- A separate singleton Durable Object serializes only new browser acquisition. It uses Cloudflare's
+  live acquisition allowance, a configurable active-session cap, a bounded FIFO queue, and
+  short-lived idempotent reservations. Existing sessions and ordinary browser actions do not pass
+  through this account-wide coordinator.
 - Cloudflare's `acquire` and `connect` APIs support reconnection. The official Playwright
   documentation states that closing a browser obtained with `connect` disconnects the Worker while
   leaving the Browser Run session alive.
@@ -51,6 +57,10 @@ recovery is reported in the observation text.
 Every call ID receives an at-most-once record before browser actions start. Completed responses are
 replayed for a bounded window. Older mutating calls retain a tombstone so the provider fails closed
 instead of repeating an action whose outcome is uncertain.
+
+Browser acquisition requests use a one-way digest of thread and call material. The coordinator never
+receives the original thread identifier. If an acquisition result is uncertain, its reservation
+remains tombstoned until expiry instead of launching a possible duplicate browser.
 
 ## Source harvest
 

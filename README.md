@@ -6,7 +6,9 @@ Cloudflare Browser Run.
 
 The project is under active development. The first supported architecture uses a one-shot
 JSON-over-stdio command adapter, an authenticated Cloudflare Worker, and a Durable Object per
-browser identity. Credentials are supplied only at runtime and must never be committed.
+browser identity. A separate account-wide Durable Object paces new browser acquisition without
+serializing actions on live sessions. Credentials are supplied only at runtime and must never be
+committed.
 
 See [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 

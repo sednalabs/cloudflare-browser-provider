@@ -15,6 +15,21 @@
 The Worker exposes an unauthenticated metadata-only `/health` endpoint and requires authentication
 for calls, purges, and provider limits.
 
+The initial admission-control settings are:
+
+```text
+BROWSER_MAX_ACTIVE_SESSIONS=16
+BROWSER_ADMISSION_QUEUE_LIMIT=32
+BROWSER_ADMISSION_WAIT_MS=60000
+BROWSER_RESERVATION_TTL_MS=30000
+BROWSER_KEEP_ALIVE_MS=120000
+```
+
+The maximum active-session setting is an operator cost and capacity guard, not Cloudflare's account
+limit. Raise it only after reviewing current Browser Run limits, expected concurrency charges, and a
+controlled burst test. Admission serializes browser creation only; live sessions continue to run in
+parallel.
+
 ## Codex command provider
 
 Install a release archive in an operator-controlled directory and set:
@@ -56,3 +71,7 @@ Then configure the command provider for the hosted backends:
 
 Keep an earlier provider configuration as the rollback file. Installing this package does not
 require terminating active Codex processes; new sessions pick up the configuration normally.
+
+`routing.fallback_order` controls provider selection. It does not replay a failed action through a
+second provider. Use an explicit `chrome` or `chromium` backend, or restore the rollback file, when
+the hosted provider is unavailable.
