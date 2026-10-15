@@ -71,7 +71,7 @@ jobs:
 
       - name: Initialize CodeQL
         # github/codeql-action v4.37.0
-        uses: github/codeql-action/init@24ea975727876cf496b1eb0c5b36e96e01600b51
+        uses: github/codeql-action/init@99df26d4f13ea111d4ec1a7dddef6063f76b97e9
         with:
           build-mode: ${{ matrix.build-mode }}
           config-file: ${{ matrix.config_file }}
